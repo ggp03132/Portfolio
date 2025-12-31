@@ -125,8 +125,8 @@ spec:
                           --from-literal=DB_USER=${DB_USER} \\
                           --from-literal=DB_PASSWORD=${DB_PASSWORD}
                         
-                        # Deploy application
-                        cat <<EOF | kubectl apply -f -
+                        # Deploy application using envFrom (no individual env vars needed)
+                        cat <<DEPLOY_EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -148,34 +148,11 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
-        env:
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://\$(DB_HOST):\$(DB_PORT)/\$(DB_NAME)"
-        - name: SPRING_DATASOURCE_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: lms-secret
-              key: DB_USER
-        - name: SPRING_DATASOURCE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: lms-secret
-              key: DB_PASSWORD
-        - name: DB_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: lms-config
-              key: DB_HOST
-        - name: DB_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: lms-config
-              key: DB_PORT
-        - name: DB_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: lms-config
-              key: DB_NAME
+        envFrom:
+        - configMapRef:
+            name: lms-config
+        - secretRef:
+            name: lms-secret
         livenessProbe:
           httpGet:
             path: /
@@ -202,7 +179,7 @@ spec:
   - port: 8080
     targetPort: 8080
     nodePort: 30800
-EOF
+DEPLOY_EOF
                         
                         echo "=== Deployment Status ==="
                         kubectl rollout status deployment/lms-backend -n lms --timeout=5m
