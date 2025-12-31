@@ -104,7 +104,7 @@ spec:
         stage('Deploy to Kubernetes') {
             steps {
                 container('kubectl') {
-                    sh '''
+                    sh """
                         echo "=== Deploying to Kubernetes ==="
                         
                         # Create namespace if not exists
@@ -229,7 +229,7 @@ EOF
                         echo "Access the application at:"
                         echo "  http://54.180.187.186:30800"
                         echo "  http://13.124.50.47:30800"
-                    '''
+                    """
                 }
             }
         }
