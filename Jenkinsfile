@@ -18,7 +18,7 @@ spec:
     volumeMounts:
     - name: gradle-cache
       mountPath: /home/gradle/.gradle
-    - name: docker
+  - name: docker
     image: docker:24-dind
     command:
     - dockerd
@@ -76,6 +76,10 @@ spec:
                 container('docker') {
                     sh '''
                         echo "=== Building Docker Image ==="
+                        
+                        # Wait for Docker daemon to be ready
+                        timeout 60 sh -c 'until docker info; do sleep 1; done'
+                        
                         docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                         docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
                         docker images | grep ${IMAGE_NAME}
@@ -181,7 +185,7 @@ spec:
 EOFDEPLOY
                         
                         echo "=== Deployment Status ==="
-                        kubectl rollout status deployment/lms-backend -n ${NAMESPACE}
+                        kubectl rollout status deployment/lms-backend -n ${NAMESPACE} --timeout=5m
                         kubectl get pods -n ${NAMESPACE}
                         kubectl get svc -n ${NAMESPACE}
                     '''
