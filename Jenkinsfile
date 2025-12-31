@@ -20,6 +20,7 @@ spec:
     - dockerd
     - --host=unix:///var/run/docker.sock
     - --host=tcp://0.0.0.0:2375
+    - --insecure-registry=172.26.9.71:5000
     env:
     - name: DOCKER_TLS_CERTDIR
       value: ""
