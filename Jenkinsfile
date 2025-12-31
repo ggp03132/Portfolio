@@ -18,13 +18,17 @@ spec:
     volumeMounts:
     - name: gradle-cache
       mountPath: /home/gradle/.gradle
-  - name: docker
+    - name: docker
     image: docker:24-dind
     command:
-    - cat
-    tty: true
+    - dockerd
+    - --host=unix:///var/run/docker.sock
+    - --host=tcp://0.0.0.0:2375
     securityContext:
       privileged: true
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
     volumeMounts:
     - name: docker-graph-storage
       mountPath: /var/lib/docker
