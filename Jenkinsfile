@@ -110,31 +110,20 @@ spec:
                         # Create namespace if not exists
                         kubectl get namespace lms || kubectl create namespace lms
                         
-                        # Create ConfigMap
-                        cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: lms-config
-  namespace: lms
-data:
-  DB_HOST: "${DB_HOST}"
-  DB_PORT: "${DB_PORT}"
-  DB_NAME: "${DB_NAME}"
-EOF
+                        # Delete existing ConfigMap and Secret to recreate with new values
+                        kubectl delete configmap lms-config -n lms --ignore-not-found=true
+                        kubectl delete secret lms-secret -n lms --ignore-not-found=true
                         
-                        # Create Secret
-                        cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Secret
-metadata:
-  name: lms-secret
-  namespace: lms
-type: Opaque
-stringData:
-  DB_USER: "${DB_USER}"
-  DB_PASSWORD: "${DB_PASSWORD}"
-EOF
+                        # Create ConfigMap using kubectl create
+                        kubectl create configmap lms-config -n lms \\
+                          --from-literal=DB_HOST=${DB_HOST} \\
+                          --from-literal=DB_PORT=${DB_PORT} \\
+                          --from-literal=DB_NAME=${DB_NAME}
+                        
+                        # Create Secret using kubectl create
+                        kubectl create secret generic lms-secret -n lms \\
+                          --from-literal=DB_USER=${DB_USER} \\
+                          --from-literal=DB_PASSWORD=${DB_PASSWORD}
                         
                         # Deploy application
                         cat <<EOF | kubectl apply -f -
