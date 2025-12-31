@@ -1,0 +1,277 @@
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="main-content mt-5">
+	<div class="col-xl-10 col-lg-11 mx-auto">
+		<script th:if="${param.forbidden}">
+			alert('수강신청은 일반 회원만 가능합니다.');
+		</script>
+		<script th:if="${param.success}">
+			alert('수강 신청이 완료되었습니다!');
+		</script>
+		<script th:if="${param.error}">
+			alert('이미 신청한 과목입니다.');
+		</script>
+		<script th:if="${param.reviewError}">
+		    alert('이미 리뷰를 작성했습니다.');
+		</script>
+		<div class="row mb-5">
+			<div class="col-md-4">
+				<img th:src="${course.courseimg}" class="img-fluid rounded shadow-sm" alt="강좌 대표 이미지">
+			</div>
+
+			<div class="col-md-8">
+				<h1 class="mb-3" th:text="${course.title}">강좌 제목</h1>
+
+				<div class="d-flex flex-wrap mb-3 text-muted small">
+					<span class="badge bg-info me-2 fs-6 align-middle" th:text="${course.grade} + '학년 과정'"></span>
+					<span class="me-3 py-2" th:text="'카테고리: '+ ${course.category.title}"></span>
+					<span class="me-3 py-2" th:text="${course.instructor.name} + ' 강사님'"></span>
+					<span class="me-3 py-2"><i class="bi bi-calendar me-1"></i> 개설일: <span
+							th:text="${#temporals.format(course.credate, 'yyyy-MM-dd')}"></span></span>
+					<span class="me-3 py-2" th:if="${#lists.size(course.applyList.?[status == 1]) >= 0}"
+						th:text="'신청인원 : ' + ${#lists.size(course.applyList.?[status == 1])}">
+					</span>
+				</div>
+
+				<div class="d-flex mt-4 pt-3 border-top">
+					<th:block
+						th:with="isEnrolled=${!course.applyList.?[status == 1 and member.memberid == #authentication.name].isEmpty()}">
+
+						<span th:if="${isEnrolled}" class="text-success fw-bold me-3 py-2">
+							수강 중인 과목입니다.
+						</span>
+
+						<form th:unless="${isEnrolled}" th:action="@{|/apply/course/${course.courseno}|}" method="post"
+							sec:authorize="hasAnyRole('ADMIN', 'USER')"
+							class="me-3">
+							<button type="submit" class="btn btn-success btn-lg">수강 신청하기</button>
+						</form>
+					</th:block>
+
+					<form th:action="@{|/lesson/create/${course.courseno}|}" method="get" class="me-3"
+						sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')"
+						th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == course.instructor.memberid}">
+						<button type="submit" class="btn btn-primary btn-lg">강의 등록하기</button>
+					</form>
+
+					<form th:action="@{|/course/modify/${course.courseno}|}" method="get" class="me-3"
+						sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')"
+						th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == course.instructor.memberid}">
+						<button type="submit" class="btn btn-warning btn-lg">강좌 수정하기</button>
+					</form>
+					<form th:action="@{|/quiz/list/${course.courseno}|}" method="get" class="me-3"
+						sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')"
+						th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == course.instructor.memberid}">
+						<button type="submit" class="btn btn-warning btn-lg">퀴즈정보</button>
+					</form>
+					<form th:action="@{|/question/create/${course.courseno}|}" method="get" class="me-3"
+						sec:authorize="isAuthenticated()">
+						<button type="submit" class="btn btn-warning btn-lg">질문하기</button>
+					</form>
+					<form th:action="@{|/review/create/${course.courseno}|}" method="get" class="me-3"
+						sec:authorize="isAuthenticated()" th:if="${isEnrolled}">
+						<button type="submit" class="btn btn-warning btn-lg">리뷰하기</button>
+					</form>
+					<button class="btn btn-secondary btn-lg" disabled th:if="${!isEnrolled}"
+						sec:authorize="isAuthenticated()">
+						리뷰하기
+					</button>
+					<div sec:authorize="!isAuthenticated()">
+						<span class="text-danger fw-bold me-3">수강 신청은 로그인 후 가능합니다.</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<ul class="nav nav-tabs" id="courseTabs" role="tablist">
+			<li class="nav-item" role="presentation">
+				<button class="nav-link active" id="lessons-tab" data-bs-toggle="tab" data-bs-target="#lessons-pane"
+					type="button" role="tab">강의 목록 (<span th:text="${course.lessonList.size()}">0</span>)</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions-pane"
+					type="button" role="tab">Q&A (<span
+						th:text="${questionList != null ? #lists.size(questionList) : 0}">0</span>)</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews-pane"
+					type="button" role="tab">수강리뷰 (<span
+						th:text="${reviewList != null ? #lists.size(reviewList) : 0}">0</span>)</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="content-tab" data-bs-toggle="tab" data-bs-target="#content-pane"
+					type="button" role="tab">강좌 내용</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="book-tab" data-bs-toggle="tab" data-bs-target="#book-pane" type="button"
+					role="tab">교재 정보</button>
+			</li>
+		</ul>
+
+		<div class="tab-content border border-top-0 p-4 bg-light rounded-bottom" id="courseTabsContent">
+
+			<div class="tab-pane fade" id="content-pane" role="tabpanel" aria-labelledby="content-tab">
+				<p style="white-space: pre-line;" th:text="${course.content}"></p>
+			</div>
+
+			<div class="tab-pane fade" id="book-pane" role="tabpanel" aria-labelledby="book-tab">
+				<div class="row">
+					<div class="col-md-3 mb-3">
+						<div th:if="${course.bookimg != null and not #strings.isEmpty(course.bookimg)}">
+							<img th:src="${course.bookimg}" class="img-fluid rounded shadow-sm" alt="교재 이미지">
+						</div>
+
+						<div th:unless="${course.bookimg != null and not #strings.isEmpty(course.bookimg)}"
+							class="d-flex align-items-center justify-content-center bg-light p-3 rounded shadow-sm text-center"
+							style="height: 180px;">
+							<p class="text-muted fw-bold m-0 small">
+								교재를 사용하지 않습니다.
+							</p>
+						</div>
+					</div>
+					<div class="col-md-9">
+						<h5 th:text="${course.book}">교재명</h5>
+					</div>
+				</div>
+			</div>
+
+			<div class="tab-pane fade show active" id="lessons-pane" role="tabpanel" aria-labelledby="lessons-tab">
+				<div class="table-responsive shadow-lg rounded-3 mb-4">
+					<table class="table table-hover table-striped">
+						<thead class="table-info">
+							<tr>
+								<th style="width: 5%;">번호</th>
+								<th style="width: 30%;">강의명</th>
+								<th style="width: 30%;">강의내용</th>
+								<th style="width: 5%;">시간</th>
+								<th sec:authorize="isAuthenticated()" style="width: 20%;">학습</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr th:if="${course.lessonList != null and !#lists.isEmpty(course.lessonList)}"
+								th:each="lesson, i : ${course.lessonList}">
+
+								<td th:text="${i.index + 1}"></td>
+								<td th:text="${lesson.title}"></td>
+								<td class="text-truncate" style="max-width: 250px;" th:text="${lesson.content}"
+									th:attr="title=${lesson.content}" data-bs-toggle="tooltip"></td>
+								<td th:text="${lesson.time} + '분'"></td>
+								<td sec:authorize="isAuthenticated()">
+									<th:block sec:authorize="hasAnyRole('INSTRUCTOR', 'ADMIN')">
+										<a th:href="@{|/lesson/detail/${lesson.lessonno}|}"
+											class="btn btn-sm btn-primary">
+											강의보기
+										</a>
+										<a th:href="@{|/lesson/modify/${lesson.lessonno}|}"
+											class="btn btn-sm btn-warning text-dark"
+											th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == course.instructor.memberid}">
+											수정
+										</a>
+									</th:block>
+									<th:block sec:authorize="hasRole('USER')">
+										<a th:href="@{|/lesson/detail/${lesson.lessonno}|}"
+											class="btn btn-sm btn-info text-white"
+											th:if="${!course.applyList.?[status == 1 and member.memberid == #authentication.name].isEmpty()}">
+											학습시작
+										</a>
+									</th:block>
+								</td>
+							</tr>
+							<tr th:unless="${course.lessonList != null and !#lists.isEmpty(course.lessonList)}">
+								<td colspan="5" class="text-center p-4 text-muted">
+									현재 등록된 강의가 없습니다.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="tab-pane fade" id="questions-pane" role="tabpanel" aria-labelledby="questions-tab">
+				<div class="table-responsive shadow-sm rounded-3">
+					<table class="table table-striped table-hover">
+						<thead class="table-info">
+							<tr>
+								<th style="width:5%">번호</th>
+								<th style="width:30%">제목</th>
+								<th style="width:15%">강의</th>
+								<th style="width:20%">작성자</th>
+								<th style="width:10%">작성일</th>
+								<th style="width:20%">상세보기</th>
+							</tr>
+						</thead>
+						<tbody>
+							<th:block th:if="${questionList != null and !#lists.isEmpty(questionList)}"
+								th:each="question : ${questionList}">
+								<tr>
+									<td th:text="${question.questionno}"></td>
+									<td th:text="${question.title}"></td>
+									<td th:text="${question.lesson != null ? question.lesson.title : '전체'}"></td>
+									<td th:text="${question.member.name}"></td>
+									<td th:text="${#temporals.format(question.credate, 'yyyy-MM-dd')}"></td>
+									<td>
+										<a th:href="@{|/question/detail/${question.questionno}|}"
+											class="btn btn-sm btn-primary">보기</a>
+									</td>
+								</tr>
+							</th:block>
+
+							<tr th:unless="${questionList != null and !#lists.isEmpty(questionList)}">
+								<td colspan="6" class="text-center text-muted p-4">
+									현재 등록된 질문이 없습니다.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="tab-pane fade" id="reviews-pane" role="tabpanel" aria-labelledby="reviews-tab">
+				<div class="table-responsive shadow-lg rounded-3 mb-4 mt-4">
+					<table class="table table-hover table-striped">
+						<thead class="table-info">
+							<tr>
+								<th style="width: 5%;">번호</th>
+								<th style="width: 45%;">내용</th>
+								<th style="width: 10%;">작성자</th>
+								<th style="width: 10%;">작성일자</th>
+								<th style="width: 10%;">별점</th>
+								<th style="width: 10%;">상세보기</th>
+							</tr>
+						</thead>
+						<tbody>
+							<th:block th:if="${reviewList != null and !#lists.isEmpty(reviewList)}"
+								th:each="review : ${reviewList}">
+								<tr>
+									<td th:text="${review.reviewno}"></td>
+									<td th:text="${review.content}"></td>
+									<td th:text="${review.member.name}"></td>
+									<td th:text="${#temporals.format(review.credate, 'yyyy-MM-dd')}"></td>
+									<td>
+										<span th:each="i : ${#numbers.sequence(1,5)}">
+											<i
+												th:classappend="${i <= review.rating} ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star text-secondary'"></i>
+										</span>
+									</td>
+									<td>
+										<a th:href="@{|/review/detail/${review.reviewno}|}"
+											class="btn btn-sm btn-primary">보기</a>
+									</td>
+								</tr>
+							</th:block>
+
+							<tr th:if="${reviewList == null or #lists.isEmpty(reviewList)}">
+								<td colspan="7" class="text-center p-4 text-muted">
+									등록된 수강 후기가 없습니다.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<!-- FontAwesome 추가 -->
+				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+			</div>
+		</div>
+	</div>
+</div>
+
+</html>

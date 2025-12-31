@@ -1,0 +1,56 @@
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="main-content mt-5">
+	<div class="container">
+		<div class="mx-auto" style="max-width: 1000px;">
+			<h1 class="mb-4 text-center">나의 강좌 회원 리스트</h1>
+
+			<!-- 전체보기 + 검색창 한 줄 배치 -->
+			           <div class="mb-3 d-flex justify-content-between" style="max-width: 1000px; margin: 0 auto;">
+			               
+			               <!-- 왼쪽: 전체보기 버튼 -->
+			               <form th:action="@{|/course/instructor/members|}" method="get" class="">
+			                   <button type="submit" class="btn btn-primary btn-sm">전체보기</button>
+			               </form>
+
+			               <!-- 오른쪽: 검색창 -->
+			               <form th:action="@{/course/instructor/members}" method="get" class="d-flex" style="width: 250px;">
+			                   <input type="text" name="courseName" class="form-control me-2" placeholder="강좌명 검색">
+			                   <button type="submit" class="btn btn-primary btn-sm" style="white-space: nowrap;">검색</button>
+			               </form>
+			           </div>
+
+			<!-- 데이터 없을 때 -->
+			<div th:if="${applies.isEmpty()}" class="alert alert-warning text-center" role="alert">
+				현재 수강신청한 회원이 없습니다.
+			</div>
+
+			<!-- 테이블 -->
+			<div class="table-responsive shadow-lg rounded-3 mb-4" th:if="${!applies.isEmpty()}">
+				<table class="table table-hover table-striped">
+					<thead class="table-info">
+						<tr>
+							<th>회원 번호</th>
+							<th>회원 이름</th>
+							<th>전화번호</th>
+							<th>강좌명</th>
+							<th>신청날짜</th>
+							<th>진도율</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="apply : ${applies}">
+							<td th:text="${apply.member.memberno}" class="align-middle"></td>
+							<td th:text="${apply.member.name}" class="align-middle"></td>
+							<td th:text="${apply.member.cellnum}" class="align-middle"></td>
+							<td th:text="${apply.course.title}" class="align-middle"></td>
+							<td th:text="${#temporals.format(apply.apldate, 'yyyy-MM-dd')}" class="align-middle"></td>
+							<td th:text="${#numbers.formatDecimal(progressRates[apply.member.memberno + '-' + apply.course.courseno], 0, 0)} + '%'"
+								class="align-middle"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+</html>

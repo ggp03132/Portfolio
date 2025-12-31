@@ -1,0 +1,59 @@
+<html layout:decorate="~{layout}">
+	<div layout:fragment="content" class="main-content mt-5">
+		<div class="col-md-9 col-lg-7 mx-auto"> 
+            <h1 class="mb-4 text-center">퀴즈 정보</h1>
+			
+			<div class="d-flex mt-4 pt-3 border-top mb-4 justify-content-end">
+				<form th:action="@{|/quiz/create/${course.courseno}|}" method="get" class="me-3" 
+				    sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')"
+				    th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == course.instructor.memberid}">		 
+				    <button type="submit" class="btn btn-warning btn-lg">퀴즈 등록하기</button>
+					<a th:href="@{|/useranswer/attempt/${course.courseno}|}" class="btn btn-secondary btn-lg">학생 기록</a>
+				</form>       
+			</div>  
+
+			<div class="table-responsive shadow-lg rounded-3 mb-4">
+				<table class="table table-hover table-striped">
+					<thead class="table-info">
+                    <tr>
+                        <th style="width: 5%;">번호</th>
+                        <th style="width: 50%;">퀴즈명</th>
+						<th style="width: 10%;">배점</th>
+						<th style="width: 10%;">등록</th>
+						<th style="width: 10%;">목록</th>
+			
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="quiz : ${quizList}" class="align-middle">
+                        <td th:text="${quiz.quizno}" ></td>		                                 
+                        <td>
+                            <span th:if="${!#authorization.expression('hasRole(''ADMIN'')')}" 
+                                  th:text="${quiz.title}">퀴즈 이름</span>                                 
+                            <form th:action="@{|/quiz/modify/${quiz.quizno}|}" method="post" class="d-flex align-items-center" sec:authorize="hasRole('ADMIN')">
+                                <input type="hidden" name="quizno" th:value="${quiz.quizno}" />
+                                <input type="text" name="title" th:value="${quiz.title}" class="form-control me-2" required/>
+                                <button type="submit" class="btn btn-success btn-sm flex-shrink-0" style="width: 60px;">수정</button>
+                            </form>
+                        </td>                        
+				
+						</td>
+						<td >
+							<span th:text="${quiz.totalpoint}" >배점</span> 
+						</td>   	                  
+                        <td sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')">
+                            <a th:href="@{|/quizquestion/create/${quiz.quizno}|}" class="btn btn-info btn-sm">문제 등록</a>
+                        </td>  	
+						<td sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')">
+						    <a th:href="@{|/quizquestion/detail/${quiz.quizno}|}" class="btn btn-info btn-sm">문제 목록</a>
+						</td>                                                     
+                    </tr>
+					
+                </tbody>
+            </table>
+        </div>
+		<form th:action="@{|/course/detail/${course.courseno}|}" method="get">
+		    <button type="submit" class="btn btn-primary btn-lg">돌아가기</button>
+		</form>
+	</div>
+</html>

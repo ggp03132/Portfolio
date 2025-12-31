@@ -1,0 +1,299 @@
+/* 기본 설정 */
+body {
+    background-color: #E8F1FF;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding-top: 70px;
+}
+
+/* 네비바 */
+.navbar {
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #90C8FF;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+.navbar-brand img {
+    width: 80px;
+    height: auto;
+    object-fit: contain;
+}
+
+.navbar-collapse {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+	flex-wrap: nowrap;
+}
+
+/* 검색창 */
+.custom-search-margin {
+    margin-left: 15px;
+}
+
+.navbar-collapse form {
+    flex: 1 1 250px;
+    max-width: 350px;
+	width: 100%;
+}
+
+/* 드롭다운 */
+.dropdown-container {
+    position: relative;
+    flex: 0 1 200px;
+    width: 100%;
+    max-width: 300px;
+	min-width: 150px;
+    margin-left: 10px;
+}
+
+.custom-dropdown {
+    appearance: none;
+    background-color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 36px 8px 15px;
+    font-size: 15px;
+    color: #000;
+    width: 100%;
+    height: 50px;
+    box-shadow: 0 0 0 1px #ccc;
+}
+
+.dropdown-arrow {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #3459a7;
+}
+
+.navbar-collapse .dropdown-container {
+    margin-left: auto;
+}
+
+/* nav-items */
+.navbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+	flex-shrink: 0;
+}
+
+.navbar-nav .nav-item .nav-link {
+    color: #fff;
+    padding: 0.5rem 1rem;
+	white-space: nowrap;
+}
+
+/* 햄버거 버튼 */
+.navbar-toggler {
+    border: none;
+    padding: 0.25rem 0.5rem;
+    position: absolute;
+    right: 20px;
+    top: 18px;
+    z-index: 1300;
+}
+
+.navbar-toggler-icon {
+    width: 1.8em;
+    height: 1.8em;
+}
+
+/* 사이드바 */
+.sidebar {
+    width: 200px;
+    background-color: #A7D1FF;
+    height: 100%;
+    position: fixed;
+    top: 95px;
+    left: 0;
+    padding-top: 20px;
+    z-index: -1;
+}
+
+.sidebar a {
+    display: block;
+    padding: 15px 20px;
+    color: #fff;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.sidebar a:hover {
+    background-color: #7FBFFF;
+    border-radius: 0 10px 10px 0;
+}
+
+/* 메인 컨텐츠 */
+.main-content {
+    margin-left: 200px;
+    padding: 30px;
+}
+
+/* 모바일 대응 */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        display: none;
+        position: fixed;
+        top: 95px;
+		right: 0;
+        width: 100%;
+		max-width: 350px;
+        background-color: #90C8FF;
+        padding: 1rem;
+        z-index: 1250;
+        flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+        gap: 8px;
+		border-radius: 0 0 15px 15px;
+		box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        border-top: 1px solid rgba(255,255,255,0.2);
+		transition: all 0.3s ease;
+    }
+
+    .navbar-collapse.show {
+        display: flex;
+    }
+	
+	.navbar-collapse form {
+		flex: 1 1 100%;
+		max-width: 100%;
+		width: 100%;
+	}
+	
+	.dropdown-container {
+		flex: 1 1 100%;
+		max-width: 100%;
+		width: 100%;
+	}
+
+    .navbar-nav {
+		flex-direction: column;
+		align-items: flex-start;
+		width: 100%;
+		gap: 8px;
+		flex-shrink: 0;
+    }
+
+    .navbar-nav .nav-item {
+        width: 100%;
+    }
+
+    .navbar-nav .nav-link {
+        width: 100%;
+		text-align: right;
+    }
+
+	.dropdown-container,
+    .custom-search-margin {
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto 8px;
+    }
+	
+	.custom-dropdown {
+		height: 45px;
+		font-size: 14px;
+	}
+	
+	.input-group .btn {
+		font-size: 13px;
+		padding: 5px 8px;
+	}
+}
+
+
+/* 카드, 버튼 */
+.card {
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.category-btn {
+  border: none;
+  padding: 6px 15px;
+  border-radius: 50rem;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: white !important;
+  transition: all 0.2s ease-in-out;
+  opacity: 0.9;
+}
+
+.category-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* 과목별 색상 */
+.category-국어 { background-color: #FF6B35; }
+.category-수학 { background-color: #FFD23F; color: #333; }
+.category-사회 { background-color: #C4D600; color: #333; }
+.category-과학 { background-color: #00A6ED; }
+.category-영어 { background-color: #9B5DE5; }
+
+.category-btn.active-category {
+  box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.5) !important;
+}
+
+/* 기타 구성요소 */
+.banner {
+  background: linear-gradient(to right, #FFEA9A, #FFF2C0);
+  border-radius: 15px;
+  padding: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  width: 400px;
+  text-align: center;
+}
+
+.login-card h2 {
+  margin-bottom: 30px;
+  font-weight: 700;
+}
+
+.login-card .btn-dark {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.login-card .links {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.login-card .links a {
+  color: #333;
+  margin: 0 8px;
+  text-decoration: none;
+}
+
+.login-card .links a:hover {
+  text-decoration: underline;
+}
+

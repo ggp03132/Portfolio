@@ -1,0 +1,43 @@
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="main-content mt-5">
+
+    <div class="container">
+        <div class="row">
+            <h2 class="mb-3">📁 메모 수정</h2>
+            <hr>
+
+            <div class="col-md-8 mx-auto">
+                <div class="card p-4 shadow-sm">
+
+					<form th:object="${memoForm}" th:action="@{|/memo/modify/${memono}|}"  method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                        <!-- 강좌명 -->
+                        <div class="mb-3">
+                            <label class="form-label">강좌명</label>
+                            <input type="text" class="form-control" th:value="${memo.course.title}" readonly>
+                        </div>
+
+                        <!-- 강의명 -->
+                        <div class="mb-3">
+                            <label class="form-label">강의명</label>
+                            <input type="text" class="form-control" th:value="${memo.lesson.title}" readonly>
+                        </div>
+
+                        <!-- 메모내용 수정 -->
+                        <div class="mb-3">
+                            <label class="form-label">메모 내용</label>
+                            <textarea class="form-control" rows="6" th:field="*{content}"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">저장</button>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</html>
