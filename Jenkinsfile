@@ -1,14 +1,10 @@
 pipeline {
     agent {
         kubernetes {
-            yaml '''
+            yaml """
 apiVersion: v1
 kind: Pod
-metadata:
-  labels:
-    jenkins: agent
 spec:
-  serviceAccountName: jenkins
   containers:
   - name: gradle
     image: gradle:8.5-jdk17
@@ -24,11 +20,11 @@ spec:
     - dockerd
     - --host=unix:///var/run/docker.sock
     - --host=tcp://0.0.0.0:2375
-    securityContext:
-      privileged: true
     env:
     - name: DOCKER_TLS_CERTDIR
       value: ""
+    securityContext:
+      privileged: true
     volumeMounts:
     - name: docker-graph-storage
       mountPath: /var/lib/docker
@@ -38,27 +34,33 @@ spec:
     - cat
     tty: true
   volumes:
-  - name: gradle-cache
-    emptyDir: {}
   - name: docker-graph-storage
     emptyDir: {}
-'''
+  - name: gradle-cache
+    emptyDir: {}
+  serviceAccountName: jenkins
+"""
         }
     }
-    
+
     environment {
+        REGISTRY = '172.26.9.71:5000'
         IMAGE_NAME = 'lms-backend'
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        NAMESPACE = 'lms'
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        DB_HOST = '172.26.9.71'
+        DB_PORT = '5432'
+        DB_NAME = 'lmsdb'
+        DB_USER = 'lms'
+        DB_PASSWORD = 'lms123456'
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-        
+
         stage('Build') {
             steps {
                 container('gradle') {
@@ -70,24 +72,34 @@ spec:
                 }
             }
         }
-        
-        stage('Docker Build') {
+
+        stage('Docker Build & Push') {
             steps {
                 container('docker') {
                     sh '''
-                        echo "=== Building Docker Image ==="
+                        echo "=== Building and Pushing Docker Image ==="
                         
                         # Wait for Docker daemon to be ready
                         timeout 60 sh -c 'until docker info; do sleep 1; done'
                         
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                        # Build the image
+                        docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                        
+                        # Tag for registry
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${IMAGE_NAME}:latest
+                        
+                        # Push to registry
+                        docker push ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${REGISTRY}/${IMAGE_NAME}:latest
+                        
+                        # Verify
                         docker images | grep ${IMAGE_NAME}
                     '''
                 }
             }
         }
-        
+
         stage('Deploy to Kubernetes') {
             steps {
                 container('kubectl') {
@@ -95,36 +107,41 @@ spec:
                         echo "=== Deploying to Kubernetes ==="
                         
                         # Create namespace if not exists
-                        kubectl get namespace ${NAMESPACE} || kubectl create namespace ${NAMESPACE}
+                        kubectl get namespace lms || kubectl create namespace lms
                         
-                        # Apply ConfigMap and Secret
-                        kubectl apply -f - <<EOFCONFIG
+                        # Create ConfigMap
+                        cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: lms-config
-  namespace: ${NAMESPACE}
+  namespace: lms
 data:
-  DB_URL: "jdbc:postgresql://172.26.9.71:5432/lmsdb"
-  DB_USERNAME: "lms"
----
+  DB_HOST: "${DB_HOST}"
+  DB_PORT: "${DB_PORT}"
+  DB_NAME: "${DB_NAME}"
+EOF
+                        
+                        # Create Secret
+                        cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
   name: lms-secret
-  namespace: ${NAMESPACE}
+  namespace: lms
 type: Opaque
 stringData:
-  DB_PASSWORD: "lms123456"
-EOFCONFIG
+  DB_USER: "${DB_USER}"
+  DB_PASSWORD: "${DB_PASSWORD}"
+EOF
                         
-                        # Update deployment
-                        kubectl apply -f - <<EOFDEPLOY
+                        # Deploy application
+                        cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: lms-backend
-  namespace: ${NAMESPACE}
+  namespace: lms
 spec:
   replicas: 2
   selector:
@@ -137,67 +154,89 @@ spec:
     spec:
       containers:
       - name: lms-backend
-        image: ${IMAGE_NAME}:${IMAGE_TAG}
-        imagePullPolicy: Never
+        image: ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
-          name: http
         env:
-        - name: DB_URL
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://\$(DB_HOST):\$(DB_PORT)/\$(DB_NAME)"
+        - name: SPRING_DATASOURCE_USERNAME
           valueFrom:
-            configMapKeyRef:
-              name: lms-config
-              key: DB_URL
-        - name: DB_USERNAME
-          valueFrom:
-            configMapKeyRef:
-              name: lms-config
-              key: DB_USERNAME
-        - name: DB_PASSWORD
+            secretKeyRef:
+              name: lms-secret
+              key: DB_USER
+        - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: lms-secret
               key: DB_PASSWORD
-        - name: SPRING_PROFILES_ACTIVE
-          value: "prod"
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: lms-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: lms-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: lms-config
+              key: DB_NAME
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: lms-backend
-  namespace: ${NAMESPACE}
+  namespace: lms
 spec:
   type: NodePort
+  selector:
+    app: lms-backend
   ports:
   - port: 8080
     targetPort: 8080
     nodePort: 30800
-    name: http
-  selector:
-    app: lms-backend
-EOFDEPLOY
+EOF
                         
                         echo "=== Deployment Status ==="
-                        kubectl rollout status deployment/lms-backend -n ${NAMESPACE} --timeout=5m
-                        kubectl get pods -n ${NAMESPACE}
-                        kubectl get svc -n ${NAMESPACE}
+                        kubectl rollout status deployment/lms-backend -n lms --timeout=5m
+                        
+                        echo "=== Pods Status ==="
+                        kubectl get pods -n lms
+                        
+                        echo "=== Service Info ==="
+                        kubectl get svc -n lms
+                        
+                        echo ""
+                        echo "✅ Application deployed successfully!"
+                        echo "Access the application at:"
+                        echo "  http://54.180.187.186:30800"
+                        echo "  http://13.124.50.47:30800"
                     '''
                 }
             }
         }
     }
-    
+
     post {
         success {
             echo '✅ Pipeline completed successfully!'
-            echo 'Application URL: http://54.180.187.186:30800'
         }
         failure {
             echo '❌ Pipeline failed!'
