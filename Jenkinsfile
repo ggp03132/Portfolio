@@ -17,10 +17,16 @@ spec:
   - name: docker
     image: docker:24-dind
     command:
-    - dockerd
-    - --host=unix:///var/run/docker.sock
-    - --host=tcp://0.0.0.0:2375
-    - --insecure-registry=172.26.9.71:5000
+    - sh
+    - -c
+    - |
+      mkdir -p /etc/docker
+      cat > /etc/docker/daemon.json <<DAEMON_EOF
+      {
+        "insecure-registries": ["172.26.9.71:5000"]
+      }
+      DAEMON_EOF
+      dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375
     env:
     - name: DOCKER_TLS_CERTDIR
       value: ""
@@ -78,23 +84,31 @@ spec:
             steps {
                 container('docker') {
                     sh '''
-                        echo "=== Building and Pushing Docker Image ==="
+                        echo "=== Waiting for Docker daemon to be ready ==="
+                        for i in $(seq 1 60); do
+                            if docker info > /dev/null 2>&1; then
+                                echo "Docker daemon is ready"
+                                break
+                            fi
+                            echo "Waiting for Docker daemon... ($i/60)"
+                            sleep 1
+                        done
                         
-                        # Wait for Docker daemon to be ready
-                        timeout 60 sh -c 'until docker info; do sleep 1; done'
+                        echo "=== Docker daemon info ==="
+                        docker info | grep -A 5 "Insecure"
                         
-                        # Build the image
+                        echo "=== Building Docker Image ==="
                         docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
                         
-                        # Tag for registry
+                        echo "=== Tagging Image for Registry ==="
                         docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
                         docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY}/${IMAGE_NAME}:latest
                         
-                        # Push to registry
+                        echo "=== Pushing to Registry ==="
                         docker push ${REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
                         docker push ${REGISTRY}/${IMAGE_NAME}:latest
                         
-                        # Verify
+                        echo "=== Verification ==="
                         docker images | grep ${IMAGE_NAME}
                     '''
                 }
@@ -107,25 +121,20 @@ spec:
                     sh """
                         echo "=== Deploying to Kubernetes ==="
                         
-                        # Create namespace if not exists
                         kubectl get namespace lms || kubectl create namespace lms
                         
-                        # Delete existing ConfigMap and Secret to recreate with new values
                         kubectl delete configmap lms-config -n lms --ignore-not-found=true
                         kubectl delete secret lms-secret -n lms --ignore-not-found=true
                         
-                        # Create ConfigMap using kubectl create
                         kubectl create configmap lms-config -n lms \\
                           --from-literal=DB_HOST=${DB_HOST} \\
                           --from-literal=DB_PORT=${DB_PORT} \\
                           --from-literal=DB_NAME=${DB_NAME}
                         
-                        # Create Secret using kubectl create
                         kubectl create secret generic lms-secret -n lms \\
                           --from-literal=DB_USER=${DB_USER} \\
                           --from-literal=DB_PASSWORD=${DB_PASSWORD}
                         
-                        # Deploy application using envFrom (no individual env vars needed)
                         cat <<DEPLOY_EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
@@ -181,20 +190,13 @@ spec:
     nodePort: 30800
 DEPLOY_EOF
                         
-                        echo "=== Deployment Status ==="
                         kubectl rollout status deployment/lms-backend -n lms --timeout=5m
-                        
-                        echo "=== Pods Status ==="
                         kubectl get pods -n lms
-                        
-                        echo "=== Service Info ==="
                         kubectl get svc -n lms
                         
                         echo ""
                         echo "✅ Application deployed successfully!"
-                        echo "Access the application at:"
-                        echo "  http://54.180.187.186:30800"
-                        echo "  http://13.124.50.47:30800"
+                        echo "Access: http://13.124.50.47:30800"
                     """
                 }
             }
