@@ -1,0 +1,166 @@
+<html layout:decorate="~{layout}">    
+    <div layout:fragment="content" class="main-content mt-5">
+        <!-- 회원용 메인화면 -->
+        <script th:src="@{/js/calendar.js}"></script>
+        <div class="col-xl-10 col-lg-11 mx-auto">
+            <!-- 로그인한 회원용 캐러셀 -->
+            <div th:if="${member != null}" class="card p-3 shadow-sm mb-4">
+                <h6 class="fw-bold mb-2 text-primary">
+                    <span th:text="${member != null and member.role != null and member.role.name() == 'USER'} ? '수강중인 강좌 목록' : '내가 등록한 강좌'"></span>
+                </h6>
+                <div id="coursesCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner px-5">
+                        <div th:with="chunkSize=3">
+                            <div th:each="i : ${#numbers.sequence(0, #lists.size(coursesToShow ?: {}) - 1, chunkSize)}"
+                                 th:classappend="${i == 0 ? 'active' : ''}" class="carousel-item">
+                                <div class="row g-3">
+                                    <div th:each="j : ${#numbers.sequence(i, #lists.size(coursesToShow ?: {}) - 1, 1)}"
+                                         th:if="${j < i + chunkSize}" class="col-md-4">
+                                        <a th:with="course=${coursesToShow.get(j)}"
+                                           th:href="@{|/course/detail/${course.courseno}|}"
+                                           class="card course-card-item border-0 h-100 shadow-sm text-decoration-none text-dark">
+                                            <div class="ratio ratio-4x3">
+                                                <img th:src="${course.courseimg}" class="card-img-top rounded-top" alt="강좌 이미지"
+                                                     style="object-fit: cover;">
+                                            </div>
+                                            <div class="card-body p-3 d-flex flex-column">
+                                                <h6 class="card-title fw-bold text-truncate mb-2" th:text="${course.title}">강좌 제목</h6>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 캐러셀 이전/다음 버튼 -->
+                    <div th:if="${#lists.size(coursesToShow ?: {}) > 3}">
+                        <button class="carousel-control-prev" type="button" data-bs-target="#coursesCarousel" data-bs-slide="prev" style="width: 3rem;">
+                            <span class="carousel-control-prev-icon p-3 rounded-circle bg-primary opacity-75"
+                                  aria-hidden="true" style="background-size: 50% 50%; left: 0;"></span>
+                            <span class="visually-hidden">이전</span>
+                        </button>
+
+                        <button class="carousel-control-next" type="button" data-bs-target="#coursesCarousel" data-bs-slide="next" style="width: 3rem;">
+                            <span class="carousel-control-next-icon p-3 rounded-circle bg-primary opacity-75"
+                                  aria-hidden="true" style="background-size: 50% 50%; right: 0;"></span>
+                            <span class="visually-hidden">다음</span>
+                        </button>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(coursesToShow ?: {})}" class="p-3 text-center text-muted">
+                        현재 강좌가 없습니다.
+                    </div>
+                </div>
+            </div>    
+
+            <div th:if="${member != null}" class="row mb-4">
+                <!--사용자(학생)-->
+				<div th:if="${member.role.name() == 'USER'}" class="row g-3">
+			        <div class="col-md-4">
+			            <div class="card p-3">
+			                <h6 class="fw-bold mb-2">나의 학습이력</h6>                        
+			                <p class="mt-3 text-muted">총 출석일: 
+			                    <span class="h3 fw-bolder text-primary" th:text="${attendanceCount}"></span> 일
+			                </p>
+			                <div class="mt-3 d-flex flex-column align-items-start" sec:authorize="hasAnyRole('ADMIN', 'USER')"> 
+			                    <form th:action="@{/attendance/check}" method="post" class="mb-2">
+			                        <button type="submit" class="btn btn-success btn-lg">출석체크</button>
+			                    </form>         
+			                    <div th:if="${message}" class="alert alert-info py-2 px-3 mb-0" role="alert">
+			                        <span th:text="${message}"></span>
+			                    </div>                   
+			                </div>
+			            </div>
+			        </div>            
+
+			        <div class="col-md-4">
+			            <div class="card p-3 mb-3">
+			                <h6 class="fw-bold mb-2">나의 총 학습 통계</h6>
+			                <ul class="list-unstyled mb-0">
+			                    <li>수강중인 강좌: <span class="fw-bold text-primary" th:text="${#lists.size(coursesToShow ?: {})}">0</span> 강좌</li> 
+			                    <li>수강완료 강좌: <span class="fw-bold text-primary" th:text="${#lists.size(completedCourses ?: {})}">0</span> 강좌</li>
+			                </ul>
+			            </div>                    
+			        </div>
+
+			        <div class="col-md-4">
+			            <div class="card p-3">
+			                <h6 class="fw-bold mb-2">나의 일정관리</h6>
+			                <div id="miniCalendar" class="mb-3"></div>
+			            </div>
+			        </div>
+			    </div>
+				
+				<!--강사, 관리자-->
+				<div th:if="${member.role.name() == 'INSTRUCTOR' or member.role.name() == 'ADMIN'}" class="row g-3">
+					<div class="col-md-6">
+					    <!-- 최근 질문 카드 -->
+					    <div class="card shadow-sm mb-3 border-0">
+					        <div class="card-body p-3">
+					            <h6 class="fw-bold mb-3 text-primary">최근 질문</h6>
+					            <ul class="list-group list-group-flush">
+					                <li th:each="question : ${recentQuestions}" class="list-group-item px-0 py-2 border-0">
+					                    <a th:href="@{|/question/detail/${question.questionno}|}" 
+					                       th:text="${question.title}" 
+					                       class="text-decoration-none text-dark d-block text-truncate"
+					                       style="max-width: 100%;">
+					                    </a>
+					                </li>
+					                <li th:if="${#lists.isEmpty(recentQuestions)}" class="list-group-item text-muted px-0 py-2 border-0">
+					                    등록된 질문이 없습니다.
+					                </li>
+					            </ul>
+					        </div>
+					    </div>
+
+					    <!-- 최근 리뷰 카드 -->
+					    <div class="card shadow-sm mb-3 border-0">
+					        <div class="card-body p-3">
+					            <h6 class="fw-bold mb-3 text-success">최근 리뷰</h6>
+					            <ul class="list-group list-group-flush">
+					                <li th:each="review : ${recentReviews}" class="list-group-item px-0 py-2 border-0">
+					                    <a th:href="@{|/review/detail/${review.reviewno}|}" 
+					                       th:text="${review.content}" 
+					                       class="text-decoration-none text-dark d-block text-truncate"
+					                       style="max-width: 100%;">
+					                    </a>
+					                </li>
+					                <li th:if="${#lists.isEmpty(recentReviews)}" class="list-group-item text-muted px-0 py-2 border-0">
+					                    등록된 리뷰가 없습니다.
+					                </li>
+					            </ul>
+					        </div>
+					    </div>
+					</div>
+
+			        <div class="col-md-6">
+			            <div class="card p-3">
+			                <h6 class="fw-bold mb-2">나의 일정관리</h6>
+			                <div id="miniCalendar" class="mb-3"></div>
+			            </div>
+			        </div>
+			    </div>
+            </div>
+        </div>
+
+        <!-- 비회원용 메인화면 -->
+        <div class="col-xl-10 col-lg-11 mx-auto" sec:authorize="!isAuthenticated()">
+            <div class="card p-4 shadow-sm mb-4 text-center bg-light" >
+                <h2 class="fw-bold text-primary mb-3">초등생을 위한 학습!</h2>
+                <p class="lead text-muted">로그인하거나 회원가입하여 강좌를 학습해 보세요.</p>
+                <div>
+                    <a th:href="@{/member/login}" class="btn btn-primary btn-lg me-3">로그인</a>
+                    <a th:href="@{/member/create}" class="btn btn-outline-primary btn-lg">회원가입</a>
+                </div>                    
+            </div>    
+            <div class="card p-4 shadow-sm mb-4 text-center bg-light" >
+                <h2 class="fw-bold text-primary mb-3">강좌를 선택하여 강의도 보고 퀴즈도 풀고!</h2>
+                <p class="lead text-muted">여러명의 강사진을 만나 보세요.</p>
+                <div>
+                    <a th:href="@{/course/list}" class="btn btn-primary btn-lg me-3">강좌 둘러보기</a>
+                </div>                    
+            </div>
+        </div>            
+    </div>    
+</html>

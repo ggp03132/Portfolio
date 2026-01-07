@@ -1,0 +1,52 @@
+<html layout:decorate="~{layout}">
+	<div layout:fragment="content" class="main-content mt-5">
+		<div class="col-md-9 col-lg-7 mx-auto"> 
+            <h1 class="mb-4 text-center">카테고리 목록</h1>
+            <div class="card mb-4 p-3 shadow-sm " sec:authorize="hasRole('ADMIN')">
+                <form th:action="@{/category/create}" method="post" class="d-flex align-items-center">
+                    <div class="input-group ">
+                        <input type="text" name="title" class="form-control me-2" placeholder="새 카테고리 이름" style="max-width: 300px;" required />
+                        <button type="submit" class="btn btn-primary">카테고리 추가</button>
+						<div th:if="${message}" class="flex-grow-1 ms-3"> 
+		                    <span th:utext="${message}" class="text-danger fw-bold"></span>
+		                </div>
+                    </div>		  		    
+                </form>
+            </div>           
+			<div class="table-responsive shadow-lg rounded-3 mb-4">
+				<table class="table table-hover table-striped">
+					<thead class="table-info">
+                    <tr>
+                        <th style="width: 5%;">번호</th>
+                        <th style="width: 60%;">카테고리명</th>
+                        <th style="width: 15%;" sec:authorize="hasRole('ADMIN')">관리</th> 
+						<th style="width: 10%;">등록</th>					
+			
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="category : ${categoryList}">
+                        <td th:text="${category.categoryno}" class="align-middle"></td>		                                 
+                        <td class="align-middle">
+                            <span th:if="${!#authorization.expression('hasRole(''ADMIN'')')}" 
+                                  th:text="${category.title}">카테고리 이름</span>                                  
+                            <form th:action="@{/category/update}" method="post" class="d-flex align-items-center" sec:authorize="hasRole('ADMIN')">
+                                <input type="hidden" name="categoryno" th:value="${category.categoryno}" />
+                                <input type="text" name="title" th:value="${category.title}" class="form-control me-2" required/>
+                                <button type="submit" class="btn btn-success btn-sm flex-shrink-0" style="width: 60px;">수정</button>
+                            </form>
+                        </td>                        
+						<td class="text-center align-middle" sec:authorize="hasRole('ADMIN')">
+						    <form th:action="@{/category/delete/{categoryno}(categoryno=${category.categoryno})}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+						        <button type="submit" class="btn btn-danger btn-sm" style="width: 60px;">삭제</button>
+						    </form>
+						</td>   	                  
+                        <td class="text-center align-middle" sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')">
+                            <a th:href="@{|/course/create/${category.categoryno}|}" class="btn btn-info btn-sm">강좌 등록</a>
+                        </td>  	                                                         
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+	</div>
+</html>

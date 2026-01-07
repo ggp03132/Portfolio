@@ -1,0 +1,53 @@
+<html layout:decorate="~{layout}">
+	<div layout:fragment="content" class="main-content mt-5">
+		<div class="col-md-9 col-lg-7 mx-auto">
+            
+		    <h1 class="mb-4 text-center">퀴즈 문제 등록</h1>
+
+		    <form th:action="@{|/quizquestion/create/${quizno}|}" 
+		          method="post" 
+		          class="needs-validation" 
+		          novalidate>
+
+                <div class="card mb-4 shadow-sm">
+		            <div class="card-header bg-light">
+		                <h5 class="mb-0">퀴즈 정보</h5>
+		            </div>
+		            <div class="card-body">
+		                
+		                <div class="mb-3">
+		                    <label for="content" class="form-label">문제 내용 <span class="text-danger">*</span></label>
+		                    <textarea name="content" id="content" class="form-control" placeholder="문제를 입력하세요." required></textarea>
+		                </div>
+		
+						<div class="mb-3">
+						  <label for="type" class="form-label">문제 유형 <span class="text-danger">*</span></label>
+						  <select name="type" id="type" class="form-select" required>
+						    <option value="">선택</option>
+						    <option value="MULTIPLE_CHOICE">객관식</option>
+						    <option value="SHORT_ANSWER">단답형</option>
+						    <option value="OX_QUIZ">O/X</option> 
+						  </select>
+						</div>
+						
+						<div class="mb-3">
+						  <label for="answer" class="form-label">정답 <span class="text-danger">*</span></label>
+						  <input type="text" name="answer" id="answer" class="form-control" placeholder="정답을 입력하세요." required />
+						</div>
+						
+						<div class="mb-3">
+						  <label for="point" class="form-label">배점 <span class="text-danger">*</span></label>
+						  <input type="text" name="point" id="point" class="form-control" placeholder="배점을 입력하세요." required />
+						</div>
+		            </div>
+		        </div>
+                
+		        <div class="d-flex justify-content-end mt-4">
+                    <a th:href="@{|/quiz/list/${course.courseno}|}" class="btn btn-secondary me-2">취소</a>
+		            <button type="submit" class="btn btn-primary">문제 등록</button>
+		        </div>
+		    </form>
+            
+        </div> 
+    </div>
+</html>

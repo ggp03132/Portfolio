@@ -1,0 +1,80 @@
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="main-content mt-5">
+
+  <div class="col-md-8 mx-auto">
+
+    <h2 class="mb-5 text-center fw-bold text-primary">
+      <i class="bi bi-question-circle"></i> 퀴즈 문제 상세
+    </h2>
+	
+	<form th:action="@{|/quizquestion/create/${quiz.quizno}|}" method="get" class="me-3">
+		    <button type="submit" class="btn btn-warning btn-lg">퀴즈등록</button>
+	</form>
+	
+    <th:block th:each="q, stat : ${questionList}">
+
+      <div class="card shadow-lg border-0 mb-4 rounded-4">
+        <div class="card-body p-4">
+
+          <!-- 문제 번호 -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-secondary">
+              문제 [[${stat.index + 1}]]
+            </h5>
+            <span class="badge bg-info text-dark px-3 py-2" th:text="${q.type}">유형</span>
+          </div>
+			
+		  <div class="mb-4">
+		    <h6 class="text-muted mb-1"><i class="bi bi-card-text"></i> 배점</h6>
+		    <p class="fs-5 lh-base" th:text="${q.point}"></p>
+		  </div>
+		  
+          <!-- 문제 내용 -->
+          <div class="mb-4">
+            <h6 class="text-muted mb-1"><i class="bi bi-card-text"></i> 문제 내용</h6>
+            <p class="fs-5 lh-base" th:text="${q.content}"></p>
+          </div>
+
+          <!-- 정답 -->
+          <div class="mb-4">
+            <h6 class="text-muted mb-1"><i class="bi bi-check-circle"></i> 정답</h6>
+            <p class="fw-bold bg-light border-start border-4 border-primary p-2 rounded text-primary"
+               th:text="${q.answer}"></p>
+          </div>
+
+          <!-- 관리 버튼 -->
+          <div class="d-flex justify-content-end gap-2 mt-3" 
+               sec:authorize="hasAnyRole('ADMIN','INSTRUCTOR')">
+
+            <a th:href="@{|/quizquestion/modify/${q.quizquestionno}|}"
+               class="btn btn-sm btn-outline-warning">
+              <i class="bi bi-pencil-square"></i> 수정
+            </a>
+
+            <form th:action="@{|/quizquestion/delete/${q.quizquestionno}|}"
+                  method="post" style="display:inline"
+                  onsubmit="return confirm('정말 삭제하시겠습니까?');">
+              <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i> 삭제
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+
+    </th:block>
+
+    <!-- 목록 버튼 -->
+    <div class="mt-4 text-center">
+      <a th:href="@{|/quiz/list/${quiz.course.courseno}|}"
+         class="btn btn-lg btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-list-ul"></i> 목록으로 돌아가기
+      </a>
+    </div>
+
+  </div>
+
+</div>
+
+</html>
